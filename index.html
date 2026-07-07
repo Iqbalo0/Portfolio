@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iqbal Pratama | 3D Interactive Portfolio</title>
-    <link rel="stylesheet" href="style.css?v=2">
-    
+    <link rel="stylesheet" href="style.css?v=5">
+
     <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    
+
     <!-- GSAP & ScrollTrigger via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    
+
     <!-- Three.js Import Map for ES Modules -->
     <script type="importmap">
       {
@@ -25,6 +26,7 @@
       }
     </script>
 </head>
+
 <body>
     <!-- WebGL Background Canvas -->
     <canvas id="webgl-canvas"></canvas>
@@ -36,13 +38,18 @@
     <div id="app">
         <!-- Header -->
         <header class="header">
-            <div class="logo">IQBAL.DEV</div>
+            <div class="logo">CallMeIqbal</div>
             <nav class="nav-links">
                 <a href="#" data-section="0" class="nav-link">Home</a>
                 <a href="#" data-section="1" class="nav-link">About</a>
                 <a href="#" data-section="2" class="nav-link">Projects</a>
                 <a href="#" data-section="3" class="nav-link">Contact</a>
             </nav>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Toggle navigation">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
         </header>
 
         <!-- Section 1: Hero -->
@@ -50,7 +57,7 @@
             <div class="hero-content">
                 <span class="eyebrow-text">Creative Engineer</span>
                 <h1 class="main-title">IQBAL PRATAMA</h1>
-                <p class="subtitle">Full-stack Developer & Designer specializing in immersive 3D web applications and high-fidelity digital art.</p>
+                <p class="subtitle">UI/UX Designer, Frontend Developer and Video Editor.</p>
                 <div class="cta-container">
                     <button class="btn btn-primary" data-section="1">Explore Work</button>
                 </div>
@@ -62,16 +69,17 @@
             <div class="glass-card align-right about-card">
                 <div class="about-grid">
                     <div class="about-profile">
-                        <img src="profile.jpg" alt="Iqbal Pratama" class="profile-img">
+                        <img src="profile.jpg?v=2" alt="Iqbal Pratama" class="profile-img">
                     </div>
                     <div class="about-details">
                         <span class="eyebrow-text">About Me</span>
-                        <h2 class="section-title">THE CONCEPT</h2>
-                        <p class="subtitle">I merge backend logic, frontend details, and 3D interactions to construct premium web software. Pushing borders to make code beautiful.</p>
+                        <h2 class="section-title">Soooo...</h2>
+                        <p class="subtitle">I enjoy daydreaming and am a perfectionist, so I focus on visual aesthetics,
+                            actively working in visual design and video editing.</p>
                         <ul class="skills-list">
-                            <li><span class="dot cyan"></span> Full-stack Coding</li>
-                            <li><span class="dot magenta"></span> Creative UI/UX</li>
-                            <li><span class="dot white"></span> WebGL / Three.js</li>
+                            <li><span class="dot cyan"></span> Front End Dev</li>
+                            <li><span class="dot magenta"></span> UI/UX Designer</li>
+                            <li><span class="dot white"></span> Video Editing</li>
                         </ul>
                     </div>
                 </div>
@@ -81,9 +89,9 @@
         <!-- Section 3: Projects -->
         <section id="sec-projects" class="content-section">
             <div class="projects-container align-left">
-                <span class="eyebrow-text">Selected Works</span>
+                <span class="eyebrow-text">What i Make In This Whole Life</span>
                 <h2 class="section-title">CREATIONS</h2>
-                
+
                 <div class="projects-grid">
                     <div class="glass-card project-card">
                         <h3>Aether OS</h3>
@@ -118,13 +126,15 @@
             <div class="glass-card align-center">
                 <span class="eyebrow-text">Get In Touch</span>
                 <h2 class="section-title">START A PROJECT</h2>
-                <p class="subtitle">Let's build something exceptional. Get in touch via email or follow my logs.</p>
+                <p class="subtitle">Let's build something Wadidaw. Get in touch via email or follow my logs.</p>
                 <div class="contact-links">
-                    <a href="mailto:iqbalpratama@gmail.com" class="contact-btn email-btn">iqbalpratama@gmail.com</a>
+                    <a href="mailto:cumaiqbalpratama@gmail.com"
+                        class="contact-btn email-btn">cumaiqbalpratama@gmail.com</a>
                     <div class="social-links">
-                        <a href="https://instagram.com/iqbalpratama" target="_blank" class="social-link">Instagram</a>
-                        <a href="#" class="social-link">GitHub</a>
-                        <a href="#" class="social-link">LinkedIn</a>
+                        <a href="https://www.instagram.com/iqbalpratamaa.__" target="_blank"
+                            class="social-link">Instagram</a>
+                        <a href="https://github.com/Iqbalo0" class="social-link">GitHub</a>
+                        <a href="https://www.tiktok.com/@bakwankeasinan" target="_blank" class="social-link">Tiktok</a>
                     </div>
                 </div>
             </div>
@@ -140,26 +150,29 @@
     </div>
 
     <!-- Floating Particle Engine Controls -->
-    <div id="particle-controls" class="glass-card particle-control-panel">
-        <h4>Visual Engine</h4>
+    <div id="controlPanel" class="glass-card particle-control-panel">
+        <div class="panel-header">
+            <h4>Visual Engine</h4>
+            <button id="closePanelBtn" class="panel-close-btn" aria-label="Minimize panel">✕</button>
+        </div>
         <div class="control-group">
-            <label>Shape</label>
-            <div class="btn-group" id="shape-selectors">
-                <button class="ctrl-btn active" data-shape="sphere">Sphere</button>
-                <button class="ctrl-btn" data-shape="torus">Torus</button>
-                <button class="ctrl-btn" data-shape="wave">Wave</button>
+            <label>Wave Style</label>
+            <div class="btn-group logo-shape-grid" id="wave-selectors">
+                <button class="ctrl-btn active" data-wave="calm">Calm</button>
+                <button class="ctrl-btn" data-wave="storm">Storm</button>
+                <button class="ctrl-btn" data-wave="digital">Digital</button>
             </div>
         </div>
         <div class="control-group">
             <label>Color</label>
             <div class="btn-group" id="color-selectors">
                 <button class="ctrl-btn active" data-color="maroon">Maroon</button>
-                <button class="ctrl-btn" data-color="crimson">Crimson</button>
+                <button class="ctrl-btn" data-color="blue navy">blue navy</button>
                 <button class="ctrl-btn" data-color="gold">Gold</button>
             </div>
         </div>
         <div class="control-group">
-            <label>Size</label>
+            <label>Particle Size</label>
             <div class="btn-group" id="size-selectors">
                 <button class="ctrl-btn" data-size="small">Small</button>
                 <button class="ctrl-btn active" data-size="medium">Medium</button>
@@ -168,11 +181,17 @@
         </div>
     </div>
 
+    <!-- Floating Trigger to Re-open Panel -->
+    <button id="openPanelBtn" class="glass-card open-panel-btn" aria-label="Open Visual Engine">
+        <span class="open-icon">:></span> Visual Engine
+    </button>
+
     <!-- Main JS Application script -->
-    <script type="module" src="main.js?v=2"></script>
+    <script type="module" src="main.js?v=5"></script>
 
     <!-- Custom Interactive Cursor -->
     <div class="custom-cursor-dot"></div>
     <div class="custom-cursor-outline"></div>
 </body>
+
 </html>

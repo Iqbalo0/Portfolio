@@ -9,6 +9,7 @@ class App {
     constructor() {
         this.canvas = document.querySelector('#webgl-canvas');
         this.isTabActive = true;
+        this.isMobile = window.innerWidth <= 768;
         
         // Mouse coordinate states for parallax
         this.mouse = { x: 0, y: 0 };
@@ -24,6 +25,7 @@ class App {
         this.initCursor();
         this.initMouseEvents();
         this.initControlPanelEvents();
+        this.initHamburger();
         
         // Start Render Loop
         this.animate();
@@ -51,7 +53,7 @@ class App {
             antialias: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.5 : 2));
         
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.2;
@@ -78,7 +80,7 @@ class App {
         this.scene.add(this.topLight);
     }
 
-    // 3. Setup 3D Particle System and Decoupled Hierarchy Groups
+    // 3. Setup Wave Particle System (Grid)
     initObjects() {
         // Parent Parallax Group: Handles mouse parallax offset shifts
         this.parallaxGroup = new THREE.Group();
@@ -88,51 +90,37 @@ class App {
         this.meshGroup = new THREE.Group();
         this.parallaxGroup.add(this.meshGroup);
 
-        this.particleCount = 3000;
-        this.spherePositions = [];
-        this.torusPositions = [];
-        this.wavePositions = [];
+        // Grid configurations for Wave Particles
+        this.gridX = this.isMobile ? 50 : 100;
+        this.gridZ = this.isMobile ? 25 : 50;
+        this.particleCount = this.gridX * this.gridZ;
+        
+        // Initial wave state
+        this.waveStyle = 'calm';
+        this.waveSpeed = 1.0;
 
-        // 1. Generate Target Coordinates: Sphere (Fibonacci distribution)
-        for (let i = 0; i < this.particleCount; i++) {
-            const phi = Math.acos(1 - 2 * (i / this.particleCount));
-            const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-            const radius = 1.35;
-            const x = radius * Math.sin(phi) * Math.cos(theta);
-            const y = radius * Math.sin(phi) * Math.sin(theta);
-            const z = radius * Math.cos(phi);
-            this.spherePositions.push(x, y, z);
+        const positions = new Float32Array(this.particleCount * 3);
+
+        let i = 0;
+        const separationX = 0.18; 
+        const separationZ = 0.18;
+        const offsetX = (this.gridX * separationX) / 2;
+        const offsetZ = (this.gridZ * separationZ) / 2;
+
+        for (let ix = 0; ix < this.gridX; ix++) {
+            for (let iz = 0; iz < this.gridZ; iz++) {
+                positions[i] = ix * separationX - offsetX;     // x
+                positions[i + 1] = 0;                          // y (will be animated)
+                positions[i + 2] = iz * separationZ - offsetZ; // z
+                i += 3;
+            }
         }
 
-        // 2. Generate Target Coordinates: Torus Knot (p=2, q=3)
-        for (let i = 0; i < this.particleCount; i++) {
-            const t = (i / this.particleCount) * Math.PI * 2 * 10;
-            const p = 2;
-            const q = 3;
-            const r = 0.8 + 0.3 * Math.cos(q * t);
-            const x = r * Math.cos(p * t);
-            const y = r * Math.sin(p * t);
-            const z = 0.3 * Math.sin(q * t);
-            this.torusPositions.push(x * 1.5, y * 1.5, z * 1.5);
-        }
-
-        // 3. Generate Target Coordinates: Wave Grid
-        for (let i = 0; i < this.particleCount; i++) {
-            const row = Math.floor(i / 54);
-            const col = i % 54;
-            const x = ((row / 54) - 0.5) * 3.4;
-            const z = ((col / 54) - 0.5) * 3.4;
-            const y = Math.sin(row * 0.15) * Math.cos(col * 0.15) * 0.45;
-            this.wavePositions.push(x, y, z);
-        }
-
-        // Create starting geometry (Sphere)
-        const startingPositions = new Float32Array(this.spherePositions);
         this.particleGeometry = new THREE.BufferGeometry();
-        this.particleGeometry.setAttribute('position', new THREE.BufferAttribute(startingPositions, 3));
+        this.particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         this.particlePositions = this.particleGeometry.attributes.position;
 
-        // Custom Points Material (High-contrast normal blending for white theme)
+        // Custom Points Material
         this.particleMaterial = new THREE.PointsMaterial({
             color: 0x5a0c13, // Maroon default
             size: 0.05,
@@ -144,37 +132,9 @@ class App {
         this.particleSystem = new THREE.Points(this.particleGeometry, this.particleMaterial);
         this.meshGroup.add(this.particleSystem);
 
-        // Initial setup for the group
-        this.meshGroup.position.set(0, 0, 0);
-    }
-
-    // Morph active particles to new target position array smoothly using GSAP
-    morphParticleShape(targetShapeName) {
-        let targetArray;
-        if (targetShapeName === 'sphere') targetArray = this.spherePositions;
-        else if (targetShapeName === 'torus') targetArray = this.torusPositions;
-        else if (targetShapeName === 'wave') targetArray = this.wavePositions;
-        else return;
-
-        const sourceArray = [...this.particlePositions.array];
-        const current = this.particlePositions.array;
-        const len = current.length;
-
-        if (this.morphTween) this.morphTween.kill();
-
-        const morphObj = { progress: 0 };
-        this.morphTween = gsap.to(morphObj, {
-            progress: 1,
-            duration: 1.4,
-            ease: 'power2.inOut',
-            onUpdate: () => {
-                const p = morphObj.progress;
-                for (let i = 0; i < len; i++) {
-                    current[i] = sourceArray[i] + (targetArray[i] - sourceArray[i]) * p;
-                }
-                this.particlePositions.needsUpdate = true;
-            }
-        });
+        // Initial setup for the wave group (Place at the bottom)
+        this.meshGroup.position.set(0, -2.5, -2);
+        this.meshGroup.rotation.x = Math.PI / 12; // Slight tilt
     }
 
     // Set particle color dynamically
@@ -207,14 +167,14 @@ class App {
         });
     }
 
-    // Bind GUI control buttons to morphing functions
+    // Bind GUI control buttons to panel collapse/expand and styles
     initControlPanelEvents() {
-        // Shape selectors
-        document.querySelectorAll('#shape-selectors .ctrl-btn').forEach(btn => {
+        // Wave Style selectors
+        document.querySelectorAll('#wave-selectors .ctrl-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                document.querySelectorAll('#shape-selectors .ctrl-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#wave-selectors .ctrl-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.morphParticleShape(btn.dataset.shape);
+                this.waveStyle = btn.dataset.wave;
             });
         });
 
@@ -235,6 +195,107 @@ class App {
                 this.setParticleSize(btn.dataset.size);
             });
         });
+
+        // Toggle Control Panel (Close/Open sliding animations)
+        const controlPanel = document.getElementById('controlPanel');
+        const closeBtn = document.getElementById('closePanelBtn');
+        const openBtn = document.getElementById('openPanelBtn');
+
+        if (controlPanel && closeBtn && openBtn) {
+            // Check if mobile for different initial state and animation
+            const isMobile = window.innerWidth <= 768;
+
+            // Initially on mobile, start closed. On desktop, start open.
+            if (isMobile) {
+                gsap.set(controlPanel, { y: '100%', opacity: 0, visibility: 'hidden' });
+                gsap.set(openBtn, { scale: 1, opacity: 1, visibility: 'visible' });
+            } else {
+                gsap.set(controlPanel, { x: 0, opacity: 1, visibility: 'visible' });
+                gsap.set(openBtn, { scale: 0.9, opacity: 0, visibility: 'hidden' });
+            }
+
+            closeBtn.addEventListener('click', () => {
+                const currentIsMobile = window.innerWidth <= 768;
+                gsap.timeline()
+                    .to(controlPanel, { 
+                        x: currentIsMobile ? 0 : -150, 
+                        y: currentIsMobile ? '100%' : 0,
+                        opacity: 0, 
+                        duration: 0.4, 
+                        ease: 'power2.inOut',
+                        onComplete: () => {
+                            gsap.set(controlPanel, { visibility: 'hidden' });
+                        }
+                    })
+                    .to(openBtn, { 
+                        scale: 1, 
+                        opacity: 1, 
+                        visibility: 'visible', 
+                        duration: 0.3, 
+                        ease: 'back.out(1.7)' 
+                    }, '-=0.1');
+            });
+
+            openBtn.addEventListener('click', () => {
+                const currentIsMobile = window.innerWidth <= 768;
+                gsap.timeline()
+                    .to(openBtn, { 
+                        scale: 0.9, 
+                        opacity: 0, 
+                        duration: 0.3, 
+                        ease: 'power2.in',
+                        onComplete: () => {
+                            gsap.set(openBtn, { visibility: 'hidden' });
+                        }
+                    })
+                    .set(controlPanel, { visibility: 'visible' })
+                    .to(controlPanel, { 
+                        x: 0, 
+                        y: 0,
+                        opacity: 1, 
+                        duration: 0.4, 
+                        ease: 'power2.out' 
+                    }, '-=0.1');
+            });
+        }
+    }
+
+    // Hamburger Menu Toggle for Mobile Navigation
+    initHamburger() {
+        const hamburger = document.getElementById('hamburgerBtn');
+        const navLinks = document.querySelector('.nav-links');
+        if (!hamburger || !navLinks) return;
+
+        hamburger.addEventListener('click', () => {
+            const isOpen = navLinks.classList.contains('open');
+            if (isOpen) {
+                this.closeNav(hamburger, navLinks);
+            } else {
+                this.openNav(hamburger, navLinks);
+            }
+        });
+
+        // Auto-close nav when a link is clicked
+        navLinks.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (this.isMobile && navLinks.classList.contains('open')) {
+                    this.closeNav(hamburger, navLinks);
+                }
+            });
+        });
+    }
+
+    openNav(hamburger, navLinks) {
+        hamburger.classList.add('active');
+        navLinks.classList.add('open');
+        // Prevent body scroll when nav is open
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeNav(hamburger, navLinks) {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('open');
+        document.body.style.overflow = '';
     }
 
     // 4. Setup Post-processing Glow via UnrealBloomPass
@@ -271,7 +332,7 @@ class App {
                 trigger: '#scroll-height-generator',
                 start: 'top top',
                 end: 'bottom bottom',
-                scrub: 1.5
+                scrub: this.isMobile ? 1 : 1.5
             }
         });
 
@@ -280,23 +341,23 @@ class App {
             .to('#sec-hero', { autoAlpha: 0, y: -40, pointerEvents: 'none', duration: 1 })
             .to('.scroll-indicator', { autoAlpha: 0, duration: 0.5 }, '<')
             .to('#sec-about', { autoAlpha: 1, y: 0, pointerEvents: 'auto', duration: 1 }, '<')
-            .to(this.meshGroup.position, { x: -1.8, y: -0.2, z: 0.5, duration: 1 }, '<')
+            .to(this.meshGroup.position, { x: -1.0, y: -2.0, z: -1.0, duration: 1 }, '<')
             .to(this.camera.position, { x: -0.5, y: 0, z: 5.0, duration: 1 }, '<')
-            .to(this.meshGroup.rotation, { x: 0.5, y: 1.5, z: 0.2, duration: 1 }, '<')
+            .to(this.meshGroup.rotation, { x: Math.PI / 6, y: 0.1, z: -0.05, duration: 1 }, '<')
 
             // --- Phase 2: About to Projects (Scroll progress ~33% -> ~66%) ---
             .to('#sec-about', { autoAlpha: 0, y: -40, pointerEvents: 'none', duration: 1 })
             .to('#sec-projects', { autoAlpha: 1, y: 0, pointerEvents: 'auto', duration: 1 }, '<')
-            .to(this.meshGroup.position, { x: 1.8, y: 0.3, z: -0.5, duration: 1 }, '<')
+            .to(this.meshGroup.position, { x: 1.0, y: -1.5, z: -3.0, duration: 1 }, '<')
             .to(this.camera.position, { x: 0.5, y: 0.2, z: 5.5, duration: 1 }, '<')
-            .to(this.meshGroup.rotation, { x: -0.5, y: 3.14, z: -0.5, duration: 1 }, '<')
+            .to(this.meshGroup.rotation, { x: Math.PI / 8, y: -0.1, z: 0.05, duration: 1 }, '<')
 
             // --- Phase 3: Projects to Contact (Scroll progress ~66% -> 100%) ---
             .to('#sec-projects', { autoAlpha: 0, y: -40, pointerEvents: 'none', duration: 1 })
             .to('#sec-contact', { autoAlpha: 1, y: 0, pointerEvents: 'auto', duration: 1 }, '<')
-            .to(this.meshGroup.position, { x: 0, y: -0.8, z: 1.0, duration: 1 }, '<')
+            .to(this.meshGroup.position, { x: 0, y: -2.2, z: 0, duration: 1 }, '<')
             .to(this.camera.position, { x: 0, y: 0, z: 3.5, duration: 1 }, '<')
-            .to(this.meshGroup.rotation, { x: 1.0, y: 4.7, z: 0, duration: 1 }, '<');
+            .to(this.meshGroup.rotation, { x: Math.PI / 10, y: 0, z: 0, duration: 1 }, '<');
 
         ScrollTrigger.refresh();
     }
@@ -402,13 +463,16 @@ class App {
             const width = window.innerWidth;
             const height = window.innerHeight;
 
+            // Update mobile flag
+            this.isMobile = width <= 768;
+
             // Camera aspect ratio
             this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
 
             // Renderer dimensions
             this.renderer.setSize(width, height);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.5 : 2));
 
             // Composer passes dimensions
             this.composer.setSize(width, height);
@@ -425,10 +489,28 @@ class App {
         // Skip render processing frames if tab is minimized/inactive
         if (!this.isTabActive) return;
 
-        // 1. Idle auto-rotation on the particle system
+        // 1. Animate Wave Particles
         if (this.particleSystem) {
-            this.particleSystem.rotation.y += 0.003;
-            this.particleSystem.rotation.x += 0.0015;
+            const positions = this.particleSystem.geometry.attributes.position.array;
+            const time = Date.now() * 0.001 * this.waveSpeed;
+            
+            for (let i = 0; i < this.particleCount * 3; i += 3) {
+                const x = positions[i];
+                const z = positions[i + 2];
+                
+                let y = 0;
+                if (this.waveStyle === 'calm') {
+                    y = Math.sin(x * 0.5 + time) * 0.25 + Math.cos(z * 0.5 + time * 0.8) * 0.25;
+                } else if (this.waveStyle === 'storm') {
+                    y = Math.sin(x * 1.5 + time * 2.0) * 0.4 + Math.cos(z * 1.2 + time * 1.5) * 0.4;
+                } else if (this.waveStyle === 'digital') {
+                    // Stepped sine wave for a pixelated/digital feel
+                    y = Math.round(Math.sin(x * 1.2 + time) * 0.3 + Math.cos(z * 1.2 + time) * 0.3);
+                }
+                
+                positions[i + 1] = y;
+            }
+            this.particleSystem.geometry.attributes.position.needsUpdate = true;
         }
 
         // 2. Linear Interpolation (lerp) mouse movement coordinates for lag inertia

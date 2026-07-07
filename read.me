@@ -5,9 +5,10 @@ A premium, interactive web portfolio featuring a real-time customizable 3D Parti
 ---
 
 ## 🚀 Key Features
-- **Customizable 3D Particle System**: Morphing points geometry (Sphere, Torus Knot, and Wavy grid states) consisting of $N = 3000$ particles.
-- **Interactive Control Engine**: Floating glass control panel allowing visitors to change particle shapes, colors (Maroon, Crimson, Gold), and particle sizes.
-- **Morph Progress Interpolation**: Smooth GSAP coordinate morph animations running at 60fps.
+- **Dynamic Wave Particle Grid**: A highly performant 3D sine-wave particle system rendered at the bottom of the screen.
+- **Interactive Visual Engine**: Floating glass control panel allowing visitors to change wave styles (Calm, Storm, Digital), colors, and sizes.
+- **Mobile First UX**: Sleek glassmorphism mobile header, fullscreen hamburger navigation, and optimized touch targets.
+- **Fluid Math Animations**: Wave coordinates dynamically calculated using trigonometric functions (`Math.sin`/`Math.cos`).
 - **About Me Profile Photo Grid**: Styled round developer profile image (`profile.jpg`) side-by-side with text details.
 - **GSAP ScrollTrigger**: Camera positions and particle coordinates coordinate organically with scroll depth.
 - **Light Glassmorphic Cards**: Highly readable frosted translucent panels for text details.
@@ -37,3 +38,6 @@ To launch and run the portfolio locally:
    ```
 2. **Access in Browser**:
    Open [http://localhost:8000](http://localhost:8000) inside your web browser.
+
+3. **or use**
+(npx serve . --listen 3000)
